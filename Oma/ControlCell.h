@@ -10,7 +10,6 @@
 
 @interface ControlCell : UITableViewCell
 
-@property (nonatomic, strong) NSString* name;
-@property (nonatomic, strong) NSString* value;
+@property (nonatomic, strong) IBOutlet UIView* control;
 
 @end

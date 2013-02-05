@@ -10,4 +10,7 @@
 
 @interface ListViewController : UITableViewController
 
+- (void)getFutureEvents;
+- (void)getFutureEventsCallback:(void(^)(void))callback;
+
 @end

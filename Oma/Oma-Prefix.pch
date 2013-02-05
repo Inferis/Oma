@@ -16,3 +16,9 @@
     #import "TinResponse.h"
     #import "MBProgressHUD.h"
 #endif
+
+#if DEBUG
+#define BASEURI @"http://oma.192.168.1.11.xip.io/"
+#else
+#define BASEURI @"http://oma.interfaceimplementation.be/"
+#endif

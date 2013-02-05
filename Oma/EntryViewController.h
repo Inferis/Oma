@@ -8,8 +8,11 @@
 
 #import <UIKit/UIKit.h>
 
+@class ListViewController;
+
 @interface EntryViewController : UITableViewController
 
 @property (nonatomic, strong) NSDictionary* entry;
+@property (nonatomic, weak) ListViewController* listController;
 
 @end

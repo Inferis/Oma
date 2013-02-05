@@ -33,7 +33,12 @@
     self.title = @"Oma";
     
     _peopleButton = [[UIBarButtonItem alloc] initWithImage:[UIImage imageNamed:@"people.png"] style:UIBarButtonItemStyleBordered target:self action:@selector(openNameChooser)];
-
+    
+    [[NSUserDefaults standardUserDefaults] addObserver:self
+                                            forKeyPath:@"Name"
+                                               options:NSKeyValueObservingOptionNew
+                                               context:NULL];
+    
     self.navigationItem.leftBarButtonItems = @[_peopleButton];
     self.navigationItem.rightBarButtonItem = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemAdd target:self action:@selector(addEntry:)];
 
@@ -46,7 +51,7 @@
 
     // setup tin
     _tin = [Tin new];
-    _tin.baseURI = @"http://dev.oma.interfaceimplementation.be/";
+    _tin.baseURI = BASEURI;
     
     _formatter = [NSDateFormatter new];
     _formatter.dateFormat = @"EEE dd.MM";
@@ -75,9 +80,11 @@
         [view addSubview:avatarView];
         
         self.navigationItem.leftBarButtonItems = @[_peopleButton, [[UIBarButtonItem alloc] initWithCustomView:view]];
-        if (_entries)
-            [self.tableView reloadData];
     }
+}
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    [self.tableView reloadData];
 }
 
 - (void)viewDidAppear:(BOOL)animated {
@@ -88,6 +95,10 @@
 }
 
 - (void)getFutureEvents {
+    [self getFutureEventsCallback:nil];
+}
+
+- (void)getFutureEventsCallback:(void(^)(void))callback {
     [self.refreshControl beginRefreshing];
     [self.tableView scrollRectToVisible:self.refreshControl.frame animated:YES];
     [_tin get:@"oma/futureevents" query:nil success:^(TinResponse *response) {
@@ -102,6 +113,8 @@
         
         [self.refreshControl endRefreshing];
         [self.tableView reloadData];
+        if (callback)
+            callback();
     }];
 }
 
@@ -121,6 +134,7 @@
 
 - (void)addEntry:(id)sender {
     EntryViewController* entryController = [[EntryViewController alloc] initWithNibName:nil bundle:nil];
+    entryController.listController = self;
     [self.navigationController pushViewController:entryController animated:YES];
 }
 
@@ -143,9 +157,16 @@
     
     NSDictionary* entry = _entries[indexPath.section][@"Who"][indexPath.row];
     [cell configureWithEntry:entry];
-    cell.editing = YES;
+    cell.selectionStyle = [entry[@"Name"] isEqualToString:[[NSUserDefaults standardUserDefaults] objectForKey:@"Name"]] ? UITableViewCellSelectionStyleBlue : UITableViewCellSelectionStyleNone;
     
     return cell;
+}
+
+- (NSIndexPath *)tableView:(UITableView *)tableView willSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSDictionary* entry = _entries[indexPath.section][@"Who"][indexPath.row];
+    if ([entry[@"Name"] isEqualToString:[[NSUserDefaults standardUserDefaults] objectForKey:@"Name"]])
+        return indexPath;
+    return nil;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
@@ -192,6 +213,7 @@
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     EntryViewController* entryController = [[EntryViewController alloc] initWithNibName:nil bundle:nil];
+    entryController.listController = self;
     entryController.entry = _entries[indexPath.section][@"Who"][indexPath.row];
     
     

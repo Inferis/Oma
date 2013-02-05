@@ -10,31 +10,21 @@
 
 @interface ControlCell ()
 
-@property (nonatomic, weak) IBOutlet UILabel* nameLabel;
-@property (nonatomic, weak) IBOutlet UILabel* valueLabel;
 
 @end
 
 @implementation ControlCell
 
-- (void)setName:(NSString *)name {
-    self.nameLabel.text = name;
+- (void)setControl:(UIView *)control {
+    [_control removeFromSuperview];
+    _control = control;
+    if (_control)
+        [self addSubview:_control];
 }
 
-- (NSString *)name {
-    return self.nameLabel.text;
-}
-
-- (void)setValue:(NSString *)value {
-    self.valueLabel.text = value;
-}
-
-- (NSString *)value {
-    return self.valueLabel.text;
-}
-
-- (void)awakeFromNib {
-    self.selectedBackgroundView = [UIView new];
+- (void)layoutSubviews {
+    [super layoutSubviews];
+    self.control.frame = self.bounds;
 }
 
 @end

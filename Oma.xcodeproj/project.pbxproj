@@ -88,7 +88,6 @@
 		E20D25D416B68E65009FDE6B /* pencil@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = E20D25D216B68E65009FDE6B /* pencil@2x.png */; };
 		E20D25D816B6929F009FDE6B /* DeleteButtonCell.m in Sources */ = {isa = PBXBuildFile; fileRef = E20D25D716B6929F009FDE6B /* DeleteButtonCell.m */; };
 		E20D25DB16B693E1009FDE6B /* ControlCell.m in Sources */ = {isa = PBXBuildFile; fileRef = E20D25DA16B693E1009FDE6B /* ControlCell.m */; };
-		E20D25DD16B693EF009FDE6B /* ControlCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = E20D25DC16B693EF009FDE6B /* ControlCell.xib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -230,7 +229,6 @@
 		E20D25D716B6929F009FDE6B /* DeleteButtonCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = DeleteButtonCell.m; sourceTree = "<group>"; };
 		E20D25D916B693E1009FDE6B /* ControlCell.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ControlCell.h; sourceTree = "<group>"; };
 		E20D25DA16B693E1009FDE6B /* ControlCell.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ControlCell.m; sourceTree = "<group>"; };
-		E20D25DC16B693EF009FDE6B /* ControlCell.xib */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.xib; path = ControlCell.xib; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -528,7 +526,6 @@
 				E20D25D716B6929F009FDE6B /* DeleteButtonCell.m */,
 				E20D25D916B693E1009FDE6B /* ControlCell.h */,
 				E20D25DA16B693E1009FDE6B /* ControlCell.m */,
-				E20D25DC16B693EF009FDE6B /* ControlCell.xib */,
 			);
 			name = Cells;
 			sourceTree = "<group>";
@@ -607,7 +604,6 @@
 				E20D25CE16B680DD009FDE6B /* people@2x.png in Resources */,
 				E20D25D316B68E65009FDE6B /* pencil-hi@2x.png in Resources */,
 				E20D25D416B68E65009FDE6B /* pencil@2x.png in Resources */,
-				E20D25DD16B693EF009FDE6B /* ControlCell.xib in Resources */,
 				E208A61E16B9B27200AE11BD /* NoticeView.bundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

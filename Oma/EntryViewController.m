@@ -10,13 +10,17 @@
 #import "UITableViewCell+AutoDequeue.h"
 #import "DeleteButtonCell.h"
 #import "ControlCell.h"
+#import "ListViewController.h"
 
-@interface EntryViewController ()
+@interface EntryViewController () <UIPickerViewDataSource, UIPickerViewDelegate>
 
 @end
 
 @implementation EntryViewController {
+    Tin* _tin;
     NSDateFormatter* _formatter;
+    UIDatePicker* _datepicker;
+    UIPickerView* _whenpicker;
 }
 
 - (void)viewDidLoad
@@ -26,13 +30,125 @@
     _formatter = [NSDateFormatter new];
     _formatter.dateFormat = @"EEE dd.MM";
 
-    [ControlCell tableViewRegisterAutoDequeueFromNib:self.tableView];
-    
+    UIBarButtonItem* done = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(done)];
+    UIBarButtonItem* delete = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(deleteEntry)];
+    NSDate* tomorrow = [[NSDate date] dateByAddingTimeInterval:24*60*60];
+    delete.tintColor = [UIColor redColor];
     if (!self.entry) {
-        self.entry = @{@"Date": @([[NSDate date] timeIntervalSince1970]), @"When": @2 };
+        self.entry = @{@"Date": @([tomorrow timeIntervalSince1970]), @"When": @1 };
+        self.navigationItem.rightBarButtonItems = @[ done ];
+    }
+    else {
+        self.navigationItem.rightBarButtonItems = @[
+                                                    delete,
+                                                    done
+                                                    ];
     }
 
+    _datepicker = [UIDatePicker new];
+    _datepicker.datePickerMode = UIDatePickerModeDate;
+    _datepicker.minimumDate = tomorrow;
+
+    _whenpicker = [UIPickerView new];
+    _whenpicker.dataSource = self;
+    _whenpicker.delegate = self;
+    _whenpicker.showsSelectionIndicator = YES;
+    
+    // setup tin
+    _tin = [Tin new];
+    _tin.baseURI = BASEURI;
+
     self.tableView.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"bg.png"]];
+}
+
+- (void)done {
+    MBProgressHUD* hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    hud.mode = MBProgressHUDModeIndeterminate;
+    
+    NSString* url;
+    NSDictionary* data;
+    if (_entry[@"Id"]) {
+        hud.labelText = @"Bewaren...";
+        data = @{
+                 @"id": _entry[@"Id"],
+                 @"date": @([_datepicker.date timeIntervalSince1970]),
+                 @"when": @([_whenpicker selectedRowInComponent:0]),
+                 };
+        url = @"oma/edit";
+    }
+    else {
+        hud.labelText = @"Aanmaken...";
+        data = @{
+                 @"name": [[NSUserDefaults standardUserDefaults] objectForKey:@"Name"],
+                 @"date": @([_datepicker.date timeIntervalSince1970]),
+                 @"when": @([_whenpicker selectedRowInComponent:0]),
+                 };
+        url = @"oma/add";
+    }
+
+    [_tin post:url body:data success:^(TinResponse *response) {
+        if (!response.error) {
+            [self.listController getFutureEventsCallback:^{
+                [MBProgressHUD hideHUDForView:self.view animated:YES];
+                dispatch_delayed(0.3, ^{
+                    [self.navigationController popViewControllerAnimated:YES];
+                });
+            }];
+        }
+        else {
+            [MBProgressHUD hideHUDForView:self.view animated:YES];
+            dispatch_delayed(0.3, ^{
+                [self.navigationController popViewControllerAnimated:YES];
+            });
+        }
+    }];
+}
+
+- (void)deleteEntry {
+    MBProgressHUD* hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    hud.mode = MBProgressHUDModeIndeterminate;
+    
+    hud.labelText = @"Verwijderen...";
+    NSDictionary* data = @{ @"id": _entry[@"Id"] };
+
+    [_tin post:@"oma/delete" body:data success:^(TinResponse *response) {
+        if (!response.error) {
+            [self.listController getFutureEventsCallback:^{
+                [MBProgressHUD hideHUDForView:self.view animated:YES];
+                dispatch_delayed(0.3, ^{
+                    [self.navigationController popViewControllerAnimated:YES];
+                });
+            }];
+        }
+        else {
+            [MBProgressHUD hideHUDForView:self.view animated:YES];
+            dispatch_delayed(0.3, ^{
+                [self.navigationController popViewControllerAnimated:YES];
+            });
+        }
+    }];
+}
+
+#pragma mark - picker view data source
+
+- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView {
+    return 1;
+}
+
+- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component {
+    return 3;
+}
+
+- (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component {
+    switch (row) {
+        case 0:
+            return @"voormiddag";
+        case 1:
+            return @"namiddag";
+        case 2:
+            return @"avond";
+    }
+    return @"geen idee jos";
 }
 
 #pragma mark - Table view data source
@@ -44,109 +160,40 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    if (section == 0)
-        return 4;
-    else
-        return 1;
+    return 1;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    if (indexPath.section == 1)
-        return 44;
-    
-    if (indexPath.row == 0 || indexPath.row == 3)
-        return 20;
-    
-    return 44;
+    return 216;
+}
+
+- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
+    if (section == 0) {
+        return @"Datum";
+    }
+    else {
+        return @"Wanneer";
+    }
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
-    UITableViewCell* result;
+    ControlCell* cell = [ControlCell tableViewAutoDequeueCell:tableView];
+    
     if (indexPath.section == 0) {
-        if (indexPath.row == 0) {
-            result = [UITableViewCell tableViewAutoDequeueCell:tableView];
-            result.backgroundView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"header.png"]];
-        }
-        else if (indexPath.row == 3) {
-            result = [UITableViewCell tableViewAutoDequeueCell:tableView];
-            result.backgroundView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"footer.png"]];
-        }
-        else {
-            ControlCell* cell = [ControlCell tableViewAutoDequeueCell:tableView];
-            if (indexPath.row == 1) {
-                cell.name = @"Datum";
-                cell.value = [_formatter stringFromDate:[NSDate dateWithTimeIntervalSince1970:[self.entry[@"Date"] doubleValue]]];
-            }
-            else {
-                cell.name = @"Wanneer";
-                switch ([self.entry[@"When"] intValue]) {
-                    case 0:
-                        cell.value = @"voormiddag";
-                        break;
-                        
-                    case 1:
-                        cell.value = @"namiddag";
-                        break;
-
-                    case 2:
-                        cell.value = @"avond";
-                        break;
-
-                    default:
-                        cell.value = @"??";
-                        break;
-                }
-            }
-            result = cell;
-        }
+        cell.control = _datepicker;
+        NSDate* date = [NSDate dateWithTimeIntervalSince1970:[_entry[@"Date"] doubleValue]];
+        NSLog(@"%@", date);
+        [_datepicker setDate:date animated:YES];
     }
     else {
-        DeleteButtonCell* cell = [DeleteButtonCell tableViewAutoDequeueCell:tableView];
-        result = cell;
+        cell.control = _whenpicker;
+        [_whenpicker selectRow:[_entry[@"When"] intValue] inComponent:0 animated:YES];
     }
     
-    return result;
+    return cell;
 }
 
-/*
-// Override to support conditional editing of the table view.
-- (BOOL)tableView:(UITableView *)tableView canEditRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    // Return NO if you do not want the specified item to be editable.
-    return YES;
-}
-*/
-
-/*
-// Override to support editing the table view.
-- (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    if (editingStyle == UITableViewCellEditingStyleDelete) {
-        // Delete the row from the data source
-        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
-    }   
-    else if (editingStyle == UITableViewCellEditingStyleInsert) {
-        // Create a new instance of the appropriate class, insert it into the array, and add a new row to the table view
-    }   
-}
-*/
-
-/*
-// Override to support rearranging the table view.
-- (void)tableView:(UITableView *)tableView moveRowAtIndexPath:(NSIndexPath *)fromIndexPath toIndexPath:(NSIndexPath *)toIndexPath
-{
-}
-*/
-
-/*
-// Override to support conditional rearranging of the table view.
-- (BOOL)tableView:(UITableView *)tableView canMoveRowAtIndexPath:(NSIndexPath *)indexPath
-{
-    // Return NO if you do not want the item to be re-orderable.
-    return YES;
-}
-*/
 
 #pragma mark - Table view delegate
 
@@ -156,12 +203,12 @@
         switch (indexPath.row) {
             case 1:
                 [UIView animateWithDuration:0.3 animations:^{
-                    <#code#>
+                
                 }];
                 break;
             case 2:
                 [UIView animateWithDuration:0.3 animations:^{
-                    <#code#>
+                    
                 }];
                 break;
         }
