@@ -22,7 +22,7 @@
 @implementation ListViewController {
     Tin* _tin;
     NSArray* _entries;
-    NSDateFormatter* _formatter;
+    NSDateFormatter* _formatter, *_monthFormatter;
     UIBarButtonItem* _peopleButton;
 }
 
@@ -103,7 +103,7 @@
     [self.tableView scrollRectToVisible:self.refreshControl.frame animated:YES];
     [_tin get:@"oma/futureevents" query:nil success:^(TinResponse *response) {
         if (response.parsedResponse) {
-            _entries = response.parsedResponse;
+            _entries = [self sortByMonth:response.parsedResponse];
         }
         else {
             NSLog(@"getFutureEvents failed: %@", response.error);
@@ -117,6 +117,26 @@
         if (callback)
             callback();
     }];
+}
+
+- (NSArray*)sortByMonth:(NSArray*)entries {
+    NSMutableArray* result = [NSMutableArray array];
+    NSMutableDictionary* item;
+    
+    for (NSDictionary* entry in entries) {
+        NSString* month = [entry[@"Date"] substringToIndex:6];
+        if (![month isEqualToString:item[@"Month"]]) {
+            item = [NSMutableDictionary dictionary];
+            item[@"Month"] = month;
+            item[@"Entries"] = [NSMutableArray array];
+            [result addObject:item];
+            
+        }
+        
+        [item[@"Entries"] addObject:entry];
+    }
+    
+    return result;
 }
 
 - (void)openNameChooser {
@@ -148,7 +168,7 @@
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    int count = [_entries[section][@"Who"] count];
+    int count = [_entries[section][@"Entries"] count];
     return count;
 }
 
@@ -156,18 +176,10 @@
 {
     EntryCell* cell = (EntryCell*)[EntryCell tableViewAutoDequeueCell:tableView];
     
-    NSDictionary* entry = _entries[indexPath.section][@"Who"][indexPath.row];
+    NSDictionary* entry = _entries[indexPath.section][@"Entries"][indexPath.row];
     [cell configureWithEntry:entry];
-    cell.selectionStyle = [entry[@"Name"] isEqualToString:[[NSUserDefaults standardUserDefaults] objectForKey:@"Name"]] ? UITableViewCellSelectionStyleBlue : UITableViewCellSelectionStyleNone;
-    
-    return cell;
-}
 
-- (NSIndexPath *)tableView:(UITableView *)tableView willSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    NSDictionary* entry = _entries[indexPath.section][@"Who"][indexPath.row];
-    if ([entry[@"Name"] isEqualToString:[[NSUserDefaults standardUserDefaults] objectForKey:@"Name"]])
-        return indexPath;
-    return nil;
+    return cell;
 }
 
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section {
@@ -192,8 +204,7 @@
     title.opaque = NO;
     title.textAlignment = NSTextAlignmentCenter;
     
-    NSDate* date = [APPDELEGATE.jsonDateFormatter dateFromString:entry[@"Date"]];
-    title.text = [_formatter stringFromDate:date];
+    title.text = [NSString stringWithFormat:@"%@/%@", [entry[@"Month"] substringFromIndex:4], [entry[@"Month"] substringToIndex:4]];
     [view addSubview:title];
     
     return view;
@@ -210,13 +221,26 @@
     return view;
 }
 
+
+- (NSIndexPath *)tableView:(UITableView *)tableView willSelectRowAtIndexPath:(NSIndexPath *)indexPath {
+    NSDictionary* entry = _entries[indexPath.section][@"Entries"][indexPath.row];
+    NSString* name = [[NSUserDefaults standardUserDefaults] objectForKey:@"Name"];
+    if ([(NSArray*)entry[@"Who"] any:^BOOL(NSDictionary* x) { return [x[@"Name"] isEqualToString:name]; }])
+        return indexPath;
+    
+    return nil;
+}
+
+
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath
 {
     EntryViewController* entryController = [[EntryViewController alloc] initWithNibName:nil bundle:nil];
     entryController.listController = self;
-    entryController.entry = _entries[indexPath.section][@"Who"][indexPath.row];
     
-    
+    NSDictionary* entry = _entries[indexPath.section][@"Entries"][indexPath.row];
+    NSString* name = [[NSUserDefaults standardUserDefaults] objectForKey:@"Name"];
+    entryController.entry = [(NSArray*)entry[@"Who"] detect:^BOOL(NSDictionary* x) { return [x[@"Name"] isEqualToString:name]; }];
+
     [self.navigationController pushViewController:entryController animated:YES];
 }
 

@@ -9,11 +9,16 @@
 #import "AppDelegate.h"
 #import "ListViewController.h"
 #import "UIColor+Hex.h"
+#import "TestFlight.h"
 
 @implementation AppDelegate
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+#if !DEBUG
+    [TestFlight takeOff:@"95c7c2a7e1a1929c69c4f452f3b85108_MjQyNjIwMTItMDctMDMgMTc6MzU6NTQuNTc0NzYw"];
+#endif
+
     ListViewController* listController = [[ListViewController alloc] initWithNibName:nil bundle:nil];
     UINavigationController* navController = [[UINavigationController alloc] initWithRootViewController:listController];
     navController.navigationBar.tintColor = [UIColor colorWithHex:0x81957b];
