@@ -68,7 +68,7 @@ namespace Oma.Controllers
             };
 
             // delete all old
-            foreach (var e in RavenSession.Query<OmaEvent>().Where(x => x.Date == entry.Date)) {
+            foreach (var e in RavenSession.Query<OmaEvent>().Where(x => x.Date == entry.Date && x.Name == name)) {
                 RavenSession.Delete(e);
             }
 
@@ -87,6 +87,11 @@ namespace Oma.Controllers
 
             entry.Date = DateTime.ParseExact(date, "yyyyMMdd", CultureInfo.InvariantCulture);
             entry.When = when;
+
+            // delete all old
+            foreach (var e in RavenSession.Query<OmaEvent>().Where(x => x.Date == entry.Date && x.Name == entry.Name)) {
+                RavenSession.Delete(e);
+            }
             RavenSession.Store(entry);
             RavenSession.SaveChanges();
 
