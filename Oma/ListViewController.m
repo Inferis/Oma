@@ -106,6 +106,7 @@
             _entries = response.parsedResponse;
         }
         else {
+            NSLog(@"getFutureEvents failed: %@", response.error);
             WBNoticeView* notice = [[WBNoticeView alloc] init];
             [notice showErrorNoticeInView:self.view title:@"Aiai!" message:@"De gegevens konden niet opgehaald worden. Lastig."];
             _entries = nil;
@@ -191,8 +192,7 @@
     title.opaque = NO;
     title.textAlignment = NSTextAlignmentCenter;
     
-    long dateValue = [entry[@"Date"] longValue];
-    NSDate* date = [NSDate dateWithTimeIntervalSince1970:(NSTimeInterval)dateValue];
+    NSDate* date = [APPDELEGATE.jsonDateFormatter dateFromString:entry[@"Date"]];
     title.text = [_formatter stringFromDate:date];
     [view addSubview:title];
     

@@ -11,6 +11,8 @@
 #import "DeleteButtonCell.h"
 #import "ControlCell.h"
 #import "ListViewController.h"
+#import "IISelectionViewController.h"
+#import "DateSelectorViewController.h"
 
 @interface EntryViewController () <UIPickerViewDataSource, UIPickerViewDelegate>
 
@@ -19,8 +21,8 @@
 @implementation EntryViewController {
     Tin* _tin;
     NSDateFormatter* _formatter;
-    UIDatePicker* _datepicker;
-    UIPickerView* _whenpicker;
+    int _when;
+    NSDate* _date;
 }
 
 - (void)viewDidLoad
@@ -32,10 +34,10 @@
 
     UIBarButtonItem* done = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemDone target:self action:@selector(done)];
     UIBarButtonItem* delete = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemTrash target:self action:@selector(deleteEntry)];
-    NSDate* tomorrow = [[NSDate date] dateByAddingTimeInterval:24*60*60];
     delete.tintColor = [UIColor redColor];
     if (!self.entry) {
-        self.entry = @{@"Date": @([tomorrow timeIntervalSince1970]), @"When": @1 };
+        NSDate* tomorrow = [[NSDate date] dateByAddingTimeInterval:24*60*60];
+        self.entry = @{@"Date": [APPDELEGATE.jsonDateFormatter stringFromDate:tomorrow], @"When": @1 };
         self.navigationItem.rightBarButtonItems = @[ done ];
     }
     else {
@@ -45,20 +47,16 @@
                                                     ];
     }
 
-    _datepicker = [UIDatePicker new];
-    _datepicker.datePickerMode = UIDatePickerModeDate;
-    _datepicker.minimumDate = tomorrow;
-
-    _whenpicker = [UIPickerView new];
-    _whenpicker.dataSource = self;
-    _whenpicker.delegate = self;
-    _whenpicker.showsSelectionIndicator = YES;
+    
     
     // setup tin
     _tin = [Tin new];
     _tin.baseURI = BASEURI;
+    
+    _when = [_entry[@"When"] intValue];
+    _date = [APPDELEGATE.jsonDateFormatter dateFromString:_entry[@"Date"]];
 
-    self.tableView.backgroundColor = [UIColor colorWithPatternImage:[UIImage imageNamed:@"bg.png"]];
+    self.tableView.backgroundView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"bg.png"]];
 }
 
 - (void)done {
@@ -71,8 +69,8 @@
         hud.labelText = @"Bewaren...";
         data = @{
                  @"id": _entry[@"Id"],
-                 @"date": @([_datepicker.date timeIntervalSince1970]),
-                 @"when": @([_whenpicker selectedRowInComponent:0]),
+                 @"date": [APPDELEGATE.jsonDateFormatter stringFromDate:_date],
+                 @"when": @(_when),
                  };
         url = @"oma/edit";
     }
@@ -80,8 +78,8 @@
         hud.labelText = @"Aanmaken...";
         data = @{
                  @"name": [[NSUserDefaults standardUserDefaults] objectForKey:@"Name"],
-                 @"date": @([_datepicker.date timeIntervalSince1970]),
-                 @"when": @([_whenpicker selectedRowInComponent:0]),
+                 @"date": [APPDELEGATE.jsonDateFormatter stringFromDate:_date],
+                 @"when": @(_when),
                  };
         url = @"oma/add";
     }
@@ -96,6 +94,7 @@
             }];
         }
         else {
+            NSLog(@"Save error %@", response.error);
             [MBProgressHUD hideHUDForView:self.view animated:YES];
             dispatch_delayed(0.3, ^{
                 [self.navigationController popViewControllerAnimated:YES];
@@ -111,6 +110,7 @@
     hud.labelText = @"Verwijderen...";
     NSDictionary* data = @{ @"id": _entry[@"Id"] };
 
+    _tin.contentType = @"application/json";
     [_tin post:@"oma/delete" body:data success:^(TinResponse *response) {
         if (!response.error) {
             [self.listController getFutureEventsCallback:^{
@@ -121,6 +121,7 @@
             }];
         }
         else {
+            NSLog(@"Delete error %@", response.error);
             [MBProgressHUD hideHUDForView:self.view animated:YES];
             dispatch_delayed(0.3, ^{
                 [self.navigationController popViewControllerAnimated:YES];
@@ -129,66 +130,49 @@
     }];
 }
 
-#pragma mark - picker view data source
-
-- (NSInteger)numberOfComponentsInPickerView:(UIPickerView *)pickerView {
-    return 1;
-}
-
-- (NSInteger)pickerView:(UIPickerView *)pickerView numberOfRowsInComponent:(NSInteger)component {
-    return 3;
-}
-
-- (NSString *)pickerView:(UIPickerView *)pickerView titleForRow:(NSInteger)row forComponent:(NSInteger)component {
-    switch (row) {
-        case 0:
-            return @"voormiddag";
-        case 1:
-            return @"namiddag";
-        case 2:
-            return @"avond";
-    }
-    return @"geen idee jos";
-}
-
 #pragma mark - Table view data source
 
-- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView
+- (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView;
 {
-    return 2;
+    return 1;
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section
 {
-    return 1;
-}
-
-- (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
-    return 216;
-}
-
-- (NSString *)tableView:(UITableView *)tableView titleForHeaderInSection:(NSInteger)section {
-    if (section == 0) {
-        return @"Datum";
-    }
-    else {
-        return @"Wanneer";
-    }
+    return 2;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath
 {
     ControlCell* cell = [ControlCell tableViewAutoDequeueCell:tableView];
     
-    if (indexPath.section == 0) {
-        cell.control = _datepicker;
-        NSDate* date = [NSDate dateWithTimeIntervalSince1970:[_entry[@"Date"] doubleValue]];
-        NSLog(@"%@", date);
-        [_datepicker setDate:date animated:YES];
+    if (indexPath.row == 0) {
+        cell.textLabel.text = @"Datum";
+        cell.detailTextLabel.text = [_formatter stringFromDate:_date];
     }
     else {
-        cell.control = _whenpicker;
-        [_whenpicker selectRow:[_entry[@"When"] intValue] inComponent:0 animated:YES];
+        cell.textLabel.text = @"Wanneer";
+        switch (_when) {
+            case 0:
+                cell.detailTextLabel.text = @"Ochtend";
+                break;
+
+            case 1:
+                cell.detailTextLabel.text = @"Namiddag";
+                break;
+
+            case 2:
+                cell.detailTextLabel.text = @"Avond";
+                break;
+
+            case 03:
+                cell.detailTextLabel.text = @"Ik kan niet!";
+                cell.detailTextLabel.textColor = [UIColor colorWithRed:0.8 green:0 blue:0 alpha:1];
+                break;
+
+            default:
+                break;
+        }
     }
     
     return cell;
@@ -201,16 +185,33 @@
 {
     if (indexPath.section == 0) {
         switch (indexPath.row) {
-            case 1:
-                [UIView animateWithDuration:0.3 animations:^{
+            case 0: {
+                DateSelectorViewController* selector = [DateSelectorViewController new];
+                selector.date = _date;
+                selector.onSelected = ^(NSDate* newDate) {
+                    _date = newDate;
+                    [self.navigationController popViewControllerAnimated:YES];
+                    [self.tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
+                };
+                [self.navigationController pushViewController:selector animated:YES];
                 
-                }];
                 break;
-            case 2:
-                [UIView animateWithDuration:0.3 animations:^{
-                    
-                }];
+            }
+                
+            case 1: {
+                IISelectionViewController* selector = [IISelectionViewController new];
+                selector.onViewDidLoad = ^(IISelectionViewController* controller) {
+                    controller.tableView.backgroundView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"bg.png"]];
+                };
+                selector.items = @[ @"Voormiddag", @"Namiddag", @"Avond", @"Ik kan niet"];
+                selector.onSelected = ^(int index) {
+                    _when = index;
+                    [self.navigationController popViewControllerAnimated:YES];
+                    [self.tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
+                };
+                [self.navigationController pushViewController:selector animated:YES];
                 break;
+            }
         }
     }
 }

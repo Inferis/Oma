@@ -10,6 +10,5 @@
 
 @interface ControlCell : UITableViewCell
 
-@property (nonatomic, strong) IBOutlet UIView* control;
 
 @end

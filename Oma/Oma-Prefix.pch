@@ -15,10 +15,14 @@
     #import "Tin.h"
     #import "TinResponse.h"
     #import "MBProgressHUD.h"
+    #import "AppDelegate.h"
+    #import "NSObject+InitWithBlock.h"
 #endif
 
 #if DEBUG
-#define BASEURI @"http://oma.192.168.1.11.xip.io/"
+#define BASEURI @"http://oma.192.168.1.22.xip.io/"
 #else
-#define BASEURI @"http://oma.interfaceimplementation.be/"
+#define BASEURI @"http://oma.inim.be/"
 #endif
+
+#define APPDELEGATE ((AppDelegate*)[UIApplication sharedApplication].delegate)

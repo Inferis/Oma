@@ -15,16 +15,11 @@
 
 @implementation ControlCell
 
-- (void)setControl:(UIView *)control {
-    [_control removeFromSuperview];
-    _control = control;
-    if (_control)
-        [self addSubview:_control];
-}
-
-- (void)layoutSubviews {
-    [super layoutSubviews];
-    self.control.frame = self.bounds;
+- (id)initWithReuseIdentifier:(NSString *)reuseIdentifier {
+    if ((self = [self initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:reuseIdentifier])) {
+        self.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+    }
+    return self;
 }
 
 @end

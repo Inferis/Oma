@@ -18,6 +18,10 @@
     UINavigationController* navController = [[UINavigationController alloc] initWithRootViewController:listController];
     navController.navigationBar.tintColor = [UIColor colorWithHex:0x81957b];
     
+    _jsonDateFormatter = [NSDateFormatter newWith:^(NSDateFormatter* object) {
+        object.dateFormat = @"yyyyMMdd";
+    }];
+    
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     self.window.rootViewController = navController;
     self.window.backgroundColor = [UIColor whiteColor];
